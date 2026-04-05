@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>CodeBugEnv — AI Agent Training Environment</title>
+<meta name="description" content="A real-world OpenEnv environment for training AI agents to detect and fix Python code bugs.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark-dimmed.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+<link rel="stylesheet" href="/static/style.css?v=2">
+</head>
+<body>
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-left">
+    <div class="nav-logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 2l1.88 1.88M14.12 3.88L16 2M9 7.13v-1a3.003 3.003 0 116 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 014-4h4a4 4 0 014 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9M6.53 9C4.6 8.8 3 7.1 3 5M6 13H2M22 13h-4M17.47 9c1.93-.2 3.53-1.9 3.53-4M9.5 16a.5.5 0 001 0 .5.5 0 00-1 0M13.5 16a.5.5 0 001 0 .5.5 0 00-1 0"/></svg>CodeBugEnv</div>
+    <span class="nav-version">v2.0.0</span>
+  </div>
+  <div class="nav-center" id="taskPills"></div>
+  <div class="nav-right">
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme"><svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></button>
+    <button class="settings-btn" onclick="openSettings()" title="Settings"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">connecting...</span>
+  </div>
+</nav>
+
+<!-- METRICS BAR -->
+<div class="metrics-bar">
+  <div class="metric-item">Episodes <span class="metric-value" id="mTotal">0</span></div>
+  <div class="metric-item">Success <span class="metric-value" id="mSuccess">0%</span></div>
+  <div class="metric-item">Best <span class="metric-value" id="mBest">0.00</span></div>
+  <div class="metric-item">Avg Steps <span class="metric-value" id="mSteps">0.0</span></div>
+</div>
+
+<div class="toast-container" id="toasts"></div>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- LEFT -->
+  <div class="col col-left">
+    <div class="col-title">Episode Control</div>
+    <div class="card" id="taskInfoCard">
+      <div class="card-header"><span class="card-label" id="taskInfoName">—</span><span class="badge" id="taskInfoDifficulty">—</span></div>
+      <div class="task-desc" id="taskInfoDesc">Select a task to begin.</div>
+      <div class="task-meta"><span>🎯 <b id="taskInfoTarget">—</b></span><span>🧪 <b id="taskInfoTests">—</b></span></div>
+      <div class="diff-bar-bg"><div class="diff-bar-fill" id="diffBarFill" style="width:0%"></div></div>
+    </div>
+    <button class="btn btn-primary" id="btnStart" style="margin-bottom:4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>Start New Episode</button>
+    <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-bottom:12px"><span class="kbd">Ctrl</span>+<span class="kbd">R</span></div>
+    <div class="card">
+      <div class="card-label" style="margin-bottom:10px">Episode Status</div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-value" id="statStep">0<span style="font-size:13px;color:var(--text-muted)">/5</span></div><div class="stat-label">Step</div></div>
+        <div class="stat-box"><div><span class="status-badge status-idle" id="statStatus">Idle</span></div><div class="stat-label" style="margin-top:6px">Status</div></div>
+        <div class="stat-box"><div class="stat-value" id="statBest" style="color:var(--text-muted)">—</div><div class="stat-label">Best</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label" style="margin-bottom:4px">Reward Trajectory</div>
+      <div class="sparkline-container"><canvas id="sparklineCanvas"></canvas></div>
+    </div>
+    <button class="btn btn-secondary" id="btnBaseline" style="margin-bottom:12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Run Baseline Agent</button>
+    <div class="card"><div class="card-label" style="margin-bottom:8px">Recent Scores</div><div class="score-pills" id="scorePills"><span style="font-size:11px;color:var(--text-muted)">No episodes</span></div></div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="col col-center" style="padding:16px;gap:0;display:flex;flex-direction:column;position:relative">
+    <div class="col-title">Code Arena</div>
+    <!-- Buggy code -->
+    <div class="code-panel" style="flex:0 0 38%;min-height:0">
+      <div class="code-panel-header">
+        <div class="code-panel-header-left"><span class="code-panel-label">Buggy Code</span><span class="lang-badge">Python</span><span class="lines-badge" id="linesCount"></span></div>
+        <div style="display:flex;align-items:center;gap:6px"><span class="badge" id="bugCategoryBadge" style="display:none;background:#8b8ba720;color:#8b8ba7"></span><span class="badge" id="bugTypeBadge" style="display:none">—</span><button class="copy-btn" onclick="copyBuggyCode()">Copy</button></div>
+      </div>
+      <div class="code-display" id="buggyCodeDisplay">
+        <div class="code-placeholder" id="codePlaceholder"><span>Start an episode to see the buggy code</span></div>
+        <pre style="display:none" id="buggyCodePre"><code class="language-python" id="buggyCodeContent"></code></pre>
+      </div>
+    </div>
+    <!-- Fix panel -->
+    <div class="code-panel" style="flex:1;min-height:0;display:flex;flex-direction:column">
+      <div class="code-panel-header">
+        <div class="code-panel-header-left"><span class="code-panel-label">Agent Fix</span><span class="improvement-badge" id="improvementBadge"></span><span id="testsPills" class="tests-pills"></span><button class="btn-sm btn-secondary" id="btnHint" style="display:none;font-size:10px;padding:3px 8px" onclick="showHintCallout()">💡 Hint</button></div>
+        <div style="display:flex;gap:6px;align-items:center"><span class="badge" id="confidenceBadge" style="display:none;background:#4f8ef718;color:#4f8ef7">Confidence: —</span><button class="clear-btn" onclick="clearFix()">Clear</button></div>
+      </div>
+      <div class="fix-area">
+        <div class="hint-callout" id="hintCallout" style="display:none;margin:8px 14px 0"><span>💡</span><span id="hintText"></span><button class="dismiss" onclick="dismissHint()">✕</button></div>
+        <textarea class="fix-textarea" id="fixedCodeInput" placeholder="Paste or write your fixed Python code here..." spellcheck="false"></textarea>
+        <div class="fix-controls">
+          <div class="char-count" id="charCount"></div>
+          <div class="fix-row"><input class="fix-input" id="bugExplanation" placeholder="Describe what was wrong..." style="flex:2"><select class="fix-select" id="bugTypeSelect"><option value="syntax">syntax</option><option value="logic">logic</option><option value="security">security</option><option value="performance">performance</option></select></div>
+          <div class="fix-row"><div class="confidence-group"><label>Confidence</label><input type="range" class="confidence-slider" id="confidenceSlider" min="0" max="100" value="80"><span class="confidence-val" id="confidenceVal">0.80</span></div></div>
+          <button class="btn btn-primary" id="btnSubmit" disabled>Submit Fix <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+          <div style="font-size:10px;color:var(--text-muted);text-align:center"><span class="kbd">Ctrl</span>+<span class="kbd">Enter</span></div>
+          <div class="error-msg" id="submitError"></div>
+          <div class="reward-display" id="rewardDisplay" style="display:none">
+            <div><div class="reward-number" id="rewardNumber">0.00</div><div class="reward-label">Step Reward</div></div>
+            <div style="flex:1"><div class="reward-detail" id="rewardDetail"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Episode overlay -->
+    <div class="episode-overlay" id="episodeOverlay" style="display:none">
+      <div class="summary-card">
+        <div class="card-label" style="margin-bottom:4px">Episode Complete</div>
+        <div class="summary-score" id="summaryScoreVal">—</div>
+        <div class="grade-badge" id="summaryGrade">—</div>
+        <div class="summary-meta"><span>Steps: <b id="summaryStepsVal">—</b> <span id="summaryEstSteps" style="color:var(--text-muted)"></span></span><span>Task: <b id="summaryTask">—</b></span></div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:16px" id="summarySpeed"></div>
+        <div class="summary-buttons"><button class="btn btn-secondary" onclick="startEpisode()">Try Again</button><button class="btn btn-primary" onclick="nextTask()">Next Task →</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="col col-right">
+    <div class="log-header"><div class="col-title" style="margin:0">Live Feed</div><div style="display:flex;gap:4px"><div class="log-filters"><button class="log-filter active" data-filter="All" onclick="setLogFilter('All')">All</button><button class="log-filter" data-filter="Steps" onclick="setLogFilter('Steps')">Steps</button><button class="log-filter" data-filter="Rewards" onclick="setLogFilter('Rewards')">Rewards</button><button class="log-filter" data-filter="Errors" onclick="setLogFilter('Errors')">Errors</button></div><button class="clear-btn" onclick="clearFeed()" style="font-size:9px">Clear</button></div></div>
+    <div class="log-feed" id="logFeed"></div>
+    <div class="card" style="margin-top:12px"><div class="card-label" style="margin-bottom:8px">Episode History</div><div id="historyList"><span style="font-size:11px;color:var(--text-muted)">No history</span></div></div>
+    <div class="card" style="margin-top:12px"><div class="inspector-toggle" id="inspectorToggle" onclick="toggleInspector()"><span class="card-label">API Inspector</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></div><div class="inspector-body" id="inspectorBody"><div class="inspector-label">Last Request</div><pre class="inspector-pre" id="inspectorReq">—</pre><div class="inspector-label">Last Response</div><pre class="inspector-pre" id="inspectorRes">—</pre></div></div>
+  </div>
+</div>
+
+<!-- SHORTCUTS -->
+<div class="shortcuts-pill">⌨ Shortcuts<div class="shortcuts-tooltip"><div class="shortcut-row"><span><span class="kbd">Ctrl</span>+<span class="kbd">Enter</span></span><span>Submit Fix</span></div><div class="shortcut-row"><span><span class="kbd">Ctrl</span>+<span class="kbd">R</span></span><span>New Episode</span></div><div class="shortcut-row"><span><span class="kbd">Ctrl</span>+<span class="kbd">1/2/3</span></span><span>Switch Task</span></div><div class="shortcut-row"><span><span class="kbd">Ctrl</span>+<span class="kbd">H</span></span><span>Get Hint</span></div></div></div>
+
+<!-- SETTINGS -->
+<div class="settings-overlay" id="settingsOverlay" onclick="closeSettings()"></div>
+<div class="settings-panel" id="settingsPanel">
+  <div class="settings-title">Settings</div>
+  <div class="setting-group"><div class="setting-label">Server URL</div><input class="setting-input" id="settingUrl" value="http://localhost:7860"></div>
+  <div class="setting-group"><div class="setting-label">Auto-start episode on task switch</div><div class="toggle" id="settingAutoStart" onclick="toggleSetting('settingAutoStart')"></div></div>
+  <div class="setting-group"><div class="setting-label">Show hints automatically</div><div class="toggle on" id="settingShowHints" onclick="toggleSetting('settingShowHints')"></div></div>
+  <button class="btn btn-primary" style="margin-top:16px" onclick="saveSettings()">Save Settings</button>
+</div>
+
+<script src="/static/app.js?v=2"></script>
+</body>
+</html>

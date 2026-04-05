@@ -1,0 +1,104 @@
+name: CodeBugEnv
+description: >
+  A real-world OpenEnv environment for training AI agents to detect and fix
+  Python code bugs across syntax, logic, and security vulnerability domains.
+version: "1.0.0"
+author: "CodeBugEnv Team"
+tags:
+  - openenv
+  - code-debugging
+  - python
+  - ai-agent
+  - bug-fixing
+  - security
+
+environment:
+  class: env.CodeBugEnv
+  methods:
+    reset: reset
+    step: step
+    state: state
+
+observation_space:
+  type: object
+  properties:
+    task_id: { type: string }
+    code: { type: string }
+    error_message: { type: string }
+    test_results: { type: array }
+    hints_available: { type: integer }
+    steps_remaining: { type: integer }
+    current_step: { type: integer }
+    previous_actions_summary: { type: array }
+    best_score: { type: number }
+    max_steps: { type: integer }
+
+action_space:
+  type: object
+  properties:
+    fixed_code: { type: string }
+    bug_explanation: { type: string }
+    bug_type:
+      type: string
+      enum: [syntax, logic, security, performance]
+    confidence: { type: number, minimum: 0.0, maximum: 1.0 }
+
+reward:
+  type: object
+  properties:
+    total: { type: number }
+    components: { type: object }
+    progress_bonus: { type: number }
+    penalty: { type: number }
+    grader_score: { type: number }
+
+tasks:
+  - id: syntax_fix
+    name: Syntax Fix
+    difficulty: easy
+    description: >
+      Fix 1-2 syntax/runtime errors (SyntaxError, NameError, TypeError).
+      Graded by executing fixed code against 3 test cases.
+    target_score: "~0.85 (GPT-4o-mini)"
+    num_test_cases: 3
+
+  - id: logic_fix
+    name: Logic Fix
+    difficulty: medium
+    description: >
+      Fix logical errors in code that runs without errors but produces wrong output.
+      Off-by-one, wrong operators, incorrect algorithms.
+      Graded against 5 test cases + bug identification bonus.
+    target_score: "~0.60 (GPT-4o)"
+    num_test_cases: 5
+
+  - id: security_fix
+    name: Security Fix
+    difficulty: hard
+    description: >
+      Identify and fix hidden security vulnerabilities — SQL injection,
+      hardcoded secrets, unsafe eval, path traversal, insecure deserialization.
+      Graded on vulnerability identification, code fix, and explanation quality.
+    target_score: "~0.30 (GPT-4o)"
+    num_test_cases: 3
+
+server:
+  framework: fastapi
+  command: "uvicorn server.app:app --host 0.0.0.0 --port 7860"
+  port: 7860
+  endpoints:
+    - /reset
+    - /step
+    - /state
+    - /tasks
+    - /grader
+    - /baseline
+
+baseline:
+  model: gpt-4o-mini
+  episodes_per_task: 3
+  script: baseline.py
+
+docker:
+  dockerfile: Dockerfile
+  port: 7860
