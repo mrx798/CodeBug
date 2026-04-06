@@ -156,7 +156,7 @@ async def mcp(request: dict[str, Any]) -> dict[str, Any]:
 
 
 @app.post("/reset")
-async def reset(req: ResetRequest) -> dict[str, Any]:
+async def reset(req: ResetRequest = ResetRequest()) -> dict[str, Any]:
     global _current_episode_id, _current_episode_task, _current_episode_step_scores, _current_episode_start
     try:
         obs = _env.reset(task_id=req.task_id, seed=req.seed)

@@ -159,7 +159,7 @@ class EpisodeState(BaseModel):
 # ---------------------------------------------------------------------------
 
 class ResetRequest(BaseModel):
-    task_id: str = Field(description="Which task to start: 'syntax_fix', 'logic_fix', or 'security_fix'")
+    task_id: str = Field(default="syntax_fix", description="Which task to start: 'syntax_fix', 'logic_fix', or 'security_fix'")
     seed: int | None = Field(default=None, description="Optional seed for deterministic bug selection")
 
 
