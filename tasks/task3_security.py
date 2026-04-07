@@ -52,12 +52,12 @@ class SecurityFixTask:
             return False
         expl = action.bug_explanation.lower()
         vuln_keywords: dict[str, list[str]] = {
-            "sql_injection": ["sql injection", "sql", "inject", "parameterized", "prepared statement"],
-            "hardcoded_secret": ["hardcoded", "hard-coded", "secret", "credential", "api key", "password in code"],
-            "unsafe_eval": ["eval", "exec", "code injection", "arbitrary code", "code execution"],
-            "path_traversal": ["path traversal", "directory traversal", "../", "traversal", "realpath"],
-            "insecure_deserialization": ["deserialization", "pickle", "yaml.load", "unsafe load", "serialize"],
-            "command_injection": ["command injection", "os.system", "shell injection", "shell=true", "subprocess"],
+            "sql_injection": ["sql injection", "parameterized query", "prepared statement"],
+            "hardcoded_secret": ["hardcoded secret", "api key exposure", "credential leak", "hard-coded password"],
+            "unsafe_eval": ["unsafe eval", "arbitrary code execution", "code injection"],
+            "path_traversal": ["path traversal", "directory traversal"],
+            "insecure_deserialization": ["insecure deserialization", "arbitrary object instantiation", "unsafe deserialization"],
+            "command_injection": ["command injection", "os command injection", "shell injection"],
         }
         keywords = vuln_keywords.get(entry.vulnerability_type.value, [])
         return any(kw in expl for kw in keywords)
@@ -116,7 +116,7 @@ class SecurityFixTask:
             return 0.0
         expl = action.bug_explanation.lower()
         hits = sum(1 for concept in entry.security_concepts if concept.lower() in expl)
-        return min(hits / max(len(entry.security_concepts), 1), 1.0)
+        return min(hits / max(len(entry.security_concepts) + 1, 2), 1.0)
 
     @staticmethod
     def grade(action: Action, entry: BugEntry, previous_best: float = 0.0) -> Reward:

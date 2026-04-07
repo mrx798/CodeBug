@@ -224,6 +224,7 @@ async def grader(req: GraderRequest) -> GraderResponse:
         import random
         bug_type_map = {"syntax_fix": BugType.SYNTAX, "logic_fix": BugType.LOGIC, "security_fix": BugType.SECURITY}
         bugs = get_bugs_by_type(bug_type_map[task_id])
+        random.seed(42)
         entry = random.choice(bugs)
 
     try:
